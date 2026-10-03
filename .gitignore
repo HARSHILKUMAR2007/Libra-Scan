@@ -1,0 +1,99 @@
+# ==============================================================================
+# Environment & Secrets (NEVER commit credentials, keys, or sensitive configs)
+# ==============================================================================
+.env
+.env.*
+!.env.example
+
+# ==============================================================================
+# Python & Bytecode
+# ==============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ==============================================================================
+# Virtual Environments
+# ==============================================================================
+bookocr/
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# ==============================================================================
+# Application Data & Databases (Local user scans, images, and SQLite DBs)
+# ==============================================================================
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+data/*.sqlite3
+*.sqlite
+*.sqlite3
+*.db
+data/uploads/*
+!data/uploads/.gitkeep
+
+# ==============================================================================
+# Testing & Code Quality
+# ==============================================================================
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.ruff_cache/
+
+# ==============================================================================
+# Logs & Temporary Files
+# ==============================================================================
+*.log
+logs/
+*.tmp
+*.temp
+
+# ==============================================================================
+# IDEs & Text Editors
+# ==============================================================================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# ==============================================================================
+# Operating System Artifacts (Windows / macOS / Linux)
+# ==============================================================================
+Thumbs.db
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+.AppleDouble
+.LSOverride
+._*

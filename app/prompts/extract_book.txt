@@ -1,0 +1,31 @@
+You are an expert librarian and book cataloger.
+Analyze the following OCR lines extracted from the book cover(s).
+The text comes from the front cover and, when present, the back cover. Merge them into one book record.
+Each line is provided in the format: id | text | position
+
+OCR LINES:
+{ocr_lines}
+{isbn_hint}
+TASK:
+Extract structured book metadata into strict JSON matching this exact structure:
+{{
+  "title": {{"value": string or null, "confidence": float 0.0-1.0, "source_line_ids": [int]}},
+  "subtitle": {{"value": string or null, "confidence": float 0.0-1.0, "source_line_ids": [int]}},
+  "authors": {{"value": [string] or null, "confidence": float 0.0-1.0, "source_line_ids": [int]}},
+  "publisher": {{"value": string or null, "confidence": float 0.0-1.0, "source_line_ids": [int]}},
+  "isbn10": {{"value": string or null, "confidence": float 0.0-1.0, "source_line_ids": [int]}},
+  "isbn13": {{"value": string or null, "confidence": float 0.0-1.0, "source_line_ids": [int]}},
+  "edition": {{"value": string or null, "confidence": float 0.0-1.0, "source_line_ids": [int]}},
+  "year": {{"value": integer or null, "confidence": float 0.0-1.0, "source_line_ids": [int]}},
+  "language": {{"value": string or null, "confidence": float 0.0-1.0, "source_line_ids": [int]}},
+  "series": {{"value": string or null, "confidence": float 0.0-1.0, "source_line_ids": [int]}}
+}}
+
+STRICT RULES:
+1. Title, subtitle, authors, series, and edition usually come from the front cover. ISBN, publisher, year, and language usually come from the back cover or the barcode area.
+2. Ignore blurbs, reviews, quotes, prices, barcode numbers that are not ISBNs, and marketing text. Never use them as field values.
+3. If front and back disagree, prefer the front for title and authors, and the back for ISBN and publisher, and lower the confidence.
+4. "source_line_ids" must use the global ids exactly as shown in the OCR lines.
+5. Never invent or hallucinate values. Use null for anything missing, confidence 0.0, and empty source_line_ids.
+6. Do NOT put author names in the title.
+7. Return valid JSON only with no markdown fences, explanations, or commentary.

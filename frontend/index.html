@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LibraScan</title>
+  <!-- Inline SVG Favicon: Rounded square with book & scan line -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230f6b5f'/%3E%3Cpath d='M8 22V9a2 2 0 0 1 2-2h12v15H10a2 2 0 0 0-2 2z' fill='none' stroke='white' stroke-width='2'/%3E%3Cline x1='6' y1='15' x2='26' y2='15' stroke='%232dd4bf' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/views.css">
+  <link rel="stylesheet" href="css/bulk.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo" onclick="window.location.hash='#overview'">
+          <!-- Inline SVG Logo: Rounded square with book and scan line -->
+          <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="8" fill="var(--accent)"/>
+            <path d="M8 23V8.5A1.5 1.5 0 0 1 9.5 7H24v16H9.5A1.5 1.5 0 0 0 8 23z" fill="none" stroke="#ffffff" stroke-width="2"/>
+            <line x1="5" y1="15" x2="27" y2="15" stroke="#2dd4bf" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+          <span class="logo-title">LibraScan</span>
+        </div>
+        <button class="mobile-close-btn" onclick="toggleSidebar(false)" aria-label="Close navigation">&times;</button>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="sidebar-nav">
+        <a href="#overview" id="nav-overview-btn" class="nav-item active">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+          </svg>
+          <span>Overview</span>
+        </a>
+
+        <a href="#scan" id="nav-scan-btn" class="nav-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
+            <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+            <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
+            <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+            <line x1="7" y1="12" x2="17" y2="12"/>
+          </svg>
+          <span>New Scan</span>
+          <span class="nav-badge hidden" id="nav-scan-badge">0</span>
+        </a>
+
+        <a href="#library" id="nav-library-btn" class="nav-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+          <span>Library</span>
+        </a>
+
+        <a href="#review" id="nav-review-btn" class="nav-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span>Review Queue</span>
+          <span class="nav-badge hidden" id="nav-review-badge">0</span>
+        </a>
+
+        <a href="#insights" id="nav-insights-btn" class="nav-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="20" x2="18" y2="10"/>
+            <line x1="12" y1="20" x2="12" y2="4"/>
+            <line x1="6" y1="20" x2="6" y2="14"/>
+          </svg>
+          <span>Insights</span>
+        </a>
+      </nav>
+
+      <!-- Sidebar Footer -->
+      <div class="sidebar-footer">
+        <button id="theme-toggle-btn" class="theme-toggle-btn" aria-label="Toggle dark mode">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+          <span class="theme-toggle-label">Dark mode</span>
+        </button>
+        <p class="sidebar-tech-note">Front + back OCR &bull; Azure Read &bull; LLM extraction</p>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="main-wrapper">
+      <header class="topbar">
+        <button class="hamburger-btn" onclick="toggleSidebar(true)" aria-label="Open menu">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+        <div class="topbar-header">
+          <span class="greeting-text" id="overview-greeting">Welcome back, Librarian</span>
+          <h1 class="page-title" id="main-page-title">Library Overview</h1>
+          <p class="page-subtitle" id="main-page-subtitle">Books cataloged from front and back cover scans, with AI extraction</p>
+        </div>
+        <div class="topbar-actions">
+          <a href="#scan" class="btn btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            <span>Scan a book</span>
+          </a>
+        </div>
+      </header>
+
+      <main class="content-container">
+        <!-- 1. OVERVIEW VIEW -->
+        <section id="view-overview" class="page-view active">
+          <!-- Hero Strip (shown when < 5 books) -->
+          <div class="hero-strip hidden" id="overview-hero-strip">
+            <div class="hero-steps">
+              <div class="hero-step"><span class="hero-step-num">1</span><span>Upload front &amp; back</span></div>
+              <span class="hero-arrow">&rarr;</span>
+              <div class="hero-step"><span class="hero-step-num">2</span><span>Read text (OCR)</span></div>
+              <span class="hero-arrow">&rarr;</span>
+              <div class="hero-step"><span class="hero-step-num">3</span><span>Extract details (AI)</span></div>
+              <span class="hero-arrow">&rarr;</span>
+              <div class="hero-step"><span class="hero-step-num">4</span><span>Review &amp; confirm</span></div>
+            </div>
+            <a href="#scan" class="btn btn-outline btn-sm">Try it now</a>
+          </div>
+
+          <!-- KPI Grid (4 in a row) -->
+          <div class="kpi-grid">
+            <div class="card kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-label">Books Cataloged</span>
+                <svg class="kpi-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                </svg>
+              </div>
+              <div class="kpi-value" id="kpi-books-val">0</div>
+              <div class="kpi-caption" id="kpi-books-sub">0 scanned today</div>
+            </div>
+
+            <div class="card kpi-card clickable" onclick="window.location.hash='#review'">
+              <div class="kpi-header">
+                <span class="kpi-label">Needs Review</span>
+                <svg class="kpi-icon warn-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="8" x2="12" y2="12"/>
+                  <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+              </div>
+              <div class="kpi-value" id="kpi-review-val">0</div>
+              <div class="kpi-caption" id="kpi-review-sub">0% of library</div>
+            </div>
+
+            <div class="card kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-label">Avg Confidence</span>
+                <svg class="kpi-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+              </div>
+              <div class="kpi-value" id="kpi-conf-val">0%</div>
+              <div class="kpi-caption" id="kpi-conf-sub">across all fields</div>
+            </div>
+
+            <div class="card kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-label">ISBN Coverage</span>
+                <svg class="kpi-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="4" width="20" height="16" rx="2"/>
+                  <line x1="6" y1="8" x2="6" y2="16"/>
+                  <line x1="10" y1="8" x2="10" y2="16"/>
+                  <line x1="14" y1="8" x2="14" y2="16"/>
+                  <line x1="18" y1="8" x2="18" y2="16"/>
+                </svg>
+              </div>
+              <div class="kpi-value" id="kpi-isbn-val">0%</div>
+              <div class="kpi-caption" id="kpi-isbn-sub">0 missing ISBN</div>
+            </div>
+          </div>
+
+          <!-- Main Row: Trend Area Chart (2/3) + Review Status (1/3) -->
+          <div class="dashboard-main-row">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Books cataloged over time</h3>
+                  <p class="card-subtitle">Activity trend for the last 30 days</p>
+                </div>
+              </div>
+              <div class="chart-container" id="trend-chart-container"></div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Review status</h3>
+                  <p class="card-subtitle">Catalog verification share</p>
+                </div>
+              </div>
+              <div id="review-status-list"></div>
+            </div>
+          </div>
+
+          <!-- Bottom Row: Recent Scans + Field Confidence -->
+          <div class="dashboard-bottom-row">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Recent scans</h3>
+                <a href="#library" class="btn btn-outline btn-xs">View all</a>
+              </div>
+              <div class="recent-list" id="recent-scans-list"></div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Field confidence</h3>
+                  <p class="card-subtitle">Average extraction accuracy by metadata field</p>
+                </div>
+              </div>
+              <div class="field-conf-grid" id="field-conf-list"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. NEW SCAN VIEW -->
+        <section id="view-scan" class="page-view">
+          <!-- Mode Switch: Single book | Bulk upload -->
+          <div class="scan-mode-toggle">
+            <button type="button" id="btn-mode-single" class="mode-tab active">Single book</button>
+            <button type="button" id="btn-mode-bulk" class="mode-tab">Bulk upload</button>
+          </div>
+
+          <!-- Single Book Container -->
+          <div id="single-scan-container">
+            <div id="upload-step-section">
+              <!-- Photo Tips Banner (Dismissible) -->
+              <div class="tips-banner" id="photo-tips-banner">
+                <div class="tips-content">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="16" x2="12" y2="12"/>
+                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                  </svg>
+                  <span><strong>Photo tips for best OCR:</strong> Good light, no glare, fill the frame, and hold steady.</span>
+                </div>
+                <button class="tips-dismiss" id="photo-tips-dismiss" aria-label="Dismiss tips">&times;</button>
+              </div>
+
+              <div class="upload-grid" style="margin-top: 16px;">
+                <!-- Front Cover Card -->
+                <div class="card upload-card" id="card-front">
+                  <div class="card-header">
+                    <span class="card-title">Front Cover</span>
+                    <span class="status-pill pill-confirmed">Required</span>
+                  </div>
+                  <div class="drop-zone" id="drop-front">
+                    <div class="drop-content" id="drop-content-front">
+                      <svg class="drop-icon" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <circle cx="8.5" cy="8.5" r="1.5"/>
+                        <path d="M21 15l-5-5L5 21"/>
+                      </svg>
+                      <p class="drop-text">Drag &amp; drop front cover photo</p>
+                      <p class="drop-hint">JPEG, PNG, WEBP (max 10MB)</p>
+                      <div class="drop-buttons">
+                        <label class="btn btn-outline btn-sm">
+                          Browse file
+                          <input type="file" id="file-front" accept="image/jpeg,image/png,image/webp" hidden>
+                        </label>
+                        <label class="btn btn-outline btn-sm camera-btn">
+                          Take photo
+                          <input type="file" id="camera-front" accept="image/*" capture="environment" hidden>
+                        </label>
+                      </div>
+                    </div>
+                    <div class="preview-box hidden" id="preview-box-front">
+                      <img id="thumb-front" alt="Front preview">
+                      <div class="preview-info">
+                        <span id="name-front"></span> &bull; <span id="size-front"></span>
+                        <div class="preview-actions">
+                          <label class="btn btn-outline btn-xs">Replace<input type="file" id="replace-front" accept="image/jpeg,image/png,image/webp" hidden></label>
+                          <button class="btn btn-danger-ghost btn-xs" onclick="removeSide('front')">Remove</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="card-error hidden" id="error-front"></div>
+                </div>
+
+                <!-- Back Cover Card -->
+                <div class="card upload-card" id="card-back">
+                  <div class="card-header">
+                    <span class="card-title">Back Cover</span>
+                    <span class="status-pill pill-pending">Optional</span>
+                  </div>
+                  <div class="drop-zone" id="drop-back">
+                    <div class="drop-content" id="drop-content-back">
+                      <svg class="drop-icon" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <circle cx="8.5" cy="8.5" r="1.5"/>
+                        <path d="M21 15l-5-5L5 21"/>
+                      </svg>
+                      <p class="drop-text">Drag &amp; drop back cover photo</p>
+                      <p class="drop-hint">ISBN barcode &amp; publication details</p>
+                      <div class="drop-buttons">
+                        <label class="btn btn-outline btn-sm">
+                          Browse file
+                          <input type="file" id="file-back" accept="image/jpeg,image/png,image/webp" hidden>
+                        </label>
+                        <label class="btn btn-outline btn-sm camera-btn">
+                          Take photo
+                          <input type="file" id="camera-back" accept="image/*" capture="environment" hidden>
+                        </label>
+                      </div>
+                    </div>
+                    <div class="preview-box hidden" id="preview-box-back">
+                      <img id="thumb-back" alt="Back preview">
+                      <div class="preview-info">
+                        <span id="name-back"></span> &bull; <span id="size-back"></span>
+                        <div class="preview-actions">
+                          <label class="btn btn-outline btn-xs">Replace<input type="file" id="replace-back" accept="image/jpeg,image/png,image/webp" hidden></label>
+                          <button class="btn btn-danger-ghost btn-xs" onclick="removeSide('back')">Remove</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="card-error hidden" id="error-back"></div>
+                </div>
+              </div>
+
+              <!-- Upload Action -->
+              <div style="text-align: center; margin-top: 24px;">
+                <button id="btn-extract" class="btn btn-primary btn-lg" disabled onclick="startExtraction()">
+                  Extract Details (Front required)
+                </button>
+              </div>
+            </div>
+
+            <!-- Stepped Progress Card -->
+            <div id="progress-container" class="card progress-card hidden">
+              <div class="spinner-large"></div>
+              <h3 class="card-title">Processing Book Images</h3>
+              <div class="progress-steps">
+                <div class="step-item" id="step-1">
+                  <span class="step-dot"></span>
+                  <span>Preprocessing images</span>
+                </div>
+                <div class="step-item" id="step-2">
+                  <span class="step-dot"></span>
+                  <span>Reading text (OCR in parallel)</span>
+                </div>
+                <div class="step-item" id="step-3">
+                  <span class="step-dot"></span>
+                  <span>Extracting catalog details</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Review Layout -->
+            <div id="review-container" class="review-layout hidden">
+              <!-- Left: Interactive Image Viewer -->
+              <div class="card viewer-card">
+                <div class="viewer-tabs-bar">
+                  <div class="side-tabs">
+                    <button id="tab-side-front" class="viewer-tab active">Front Cover</button>
+                    <button id="tab-side-back" class="viewer-tab">Back Cover</button>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 12px;">
+                    <label style="font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                      <input type="checkbox" id="toggle-ocr-lines"> Show OCR Lines
+                    </label>
+                    <button class="btn btn-outline btn-xs" onclick="resetToScan()">Scan another</button>
+                  </div>
+                </div>
+                <div class="viewer-canvas-area" id="viewer-canvas-area">
+                  <img id="viewer-img" alt="Book cover">
+                  <canvas id="box-canvas"></canvas>
+                  <div id="box-tooltip" class="box-tooltip hidden"></div>
+                </div>
+              </div>
+
+              <!-- Right: Metadata Form -->
+              <div class="card metadata-card">
+                <div id="review-alert" class="tips-banner hidden" style="border-left-color: var(--warn); margin: 0 0 16px 0;">
+                  <div>
+                    <strong>⚠️ Needs Review:</strong>
+                    <ul id="warning-list" style="padding-left: 20px; font-size: 12px; margin-top: 4px;"></ul>
+                  </div>
+                </div>
+
+                <form id="book-form" onsubmit="event.preventDefault();">
+                  <div class="form-row">
+                    <div class="form-group flex-2" data-field="title">
+                      <label><span>Title</span><span class="badges-wrap"><span class="source-chips" id="chips-title"></span><span id="badge-title" class="badge"></span></span></label>
+                      <input type="text" id="field-title" tabindex="1">
+                    </div>
+                    <div class="form-group flex-1" data-field="year">
+                      <label><span>Year</span><span class="badges-wrap"><span class="source-chips" id="chips-year"></span><span id="badge-year" class="badge"></span></span></label>
+                      <input type="number" id="field-year" tabindex="2">
+                    </div>
+                  </div>
+
+                  <div class="form-group" data-field="subtitle">
+                    <label><span>Subtitle</span><span class="badges-wrap"><span class="source-chips" id="chips-subtitle"></span><span id="badge-subtitle" class="badge"></span></span></label>
+                    <input type="text" id="field-subtitle" tabindex="3">
+                  </div>
+
+                  <div class="form-group" data-field="authors">
+                    <label><span>Authors (comma-separated)</span><span class="badges-wrap"><span class="source-chips" id="chips-authors"></span><span id="badge-authors" class="badge"></span></span></label>
+                    <input type="text" id="field-authors" tabindex="4">
+                  </div>
+
+                  <div class="form-row">
+                    <div class="form-group flex-1" data-field="publisher">
+                      <label><span>Publisher</span><span class="badges-wrap"><span class="source-chips" id="chips-publisher"></span><span id="badge-publisher" class="badge"></span></span></label>
+                      <input type="text" id="field-publisher" tabindex="5">
+                    </div>
+                    <div class="form-group flex-1" data-field="edition">
+                      <label><span>Edition</span><span class="badges-wrap"><span class="source-chips" id="chips-edition"></span><span id="badge-edition" class="badge"></span></span></label>
+                      <input type="text" id="field-edition" tabindex="6">
+                    </div>
+                  </div>
+
+                  <div class="form-row">
+                    <div class="form-group flex-1" data-field="isbn10">
+                      <label><span>ISBN-10</span><span class="badges-wrap"><span class="source-chips" id="chips-isbn10"></span><span id="badge-isbn10" class="badge"></span></span></label>
+                      <input type="text" id="field-isbn10" tabindex="7">
+                    </div>
+                    <div class="form-group flex-1" data-field="isbn13">
+                      <label><span>ISBN-13</span><span class="badges-wrap"><span class="source-chips" id="chips-isbn13"></span><span id="badge-isbn13" class="badge"></span></span></label>
+                      <input type="text" id="field-isbn13" tabindex="8">
+                    </div>
+                  </div>
+
+                  <div class="form-row">
+                    <div class="form-group flex-1" data-field="language">
+                      <label><span>Language</span><span class="badges-wrap"><span class="source-chips" id="chips-language"></span><span id="badge-language" class="badge"></span></span></label>
+                      <input type="text" id="field-language" tabindex="9">
+                    </div>
+                    <div class="form-group flex-1" data-field="series">
+                      <label><span>Series</span><span class="badges-wrap"><span class="source-chips" id="chips-series"></span><span id="badge-series" class="badge"></span></span></label>
+                      <input type="text" id="field-series" tabindex="10">
+                    </div>
+                  </div>
+
+                  <div class="form-actions">
+                    <button type="button" class="btn btn-primary" onclick="saveAndConfirm()" tabindex="11">Save and Confirm</button>
+                    <button type="button" class="btn btn-danger-ghost" onclick="deleteCurrentBook()" tabindex="12">Delete</button>
+                  </div>
+                  <p class="keyboard-hint">Shortcuts: <strong>Ctrl+Enter</strong> to Save and Confirm &bull; <strong>Esc</strong> to clear field</p>
+                </form>
+
+                <details style="margin-top: 16px; font-size: 12px; color: var(--muted);">
+                  <summary style="cursor: pointer; font-weight: 600;">Raw LLM &amp; OCR JSON</summary>
+                  <pre id="raw-json-viewer" style="background: var(--card-subtle); padding: 12px; border-radius: 6px; overflow-x: auto; margin-top: 8px;"></pre>
+                </details>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bulk Upload Container -->
+          <div id="bulk-scan-container" class="hidden">
+            <!-- Choice: Front only | Front + Back (default Front + Back) -->
+            <div class="bulk-mode-choice-bar" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Bulk Mode:</span>
+              <div class="scan-mode-toggle" style="margin-bottom: 0;">
+                <button type="button" id="btn-bulk-front-only" class="mode-tab">Front only</button>
+                <button type="button" id="btn-bulk-front-back" class="mode-tab active">Front + Back</button>
+              </div>
+            </div>
+
+            <!-- Part 1: Add Files -->
+            <div id="bulk-add-section">
+              <div class="card" style="margin-bottom: 20px; border-left: 4px solid var(--accent);">
+                <div style="font-size: 13px; color: var(--text-secondary);">
+                  <strong>Bulk Upload:</strong> Drop multiple cover photos. Files are automatically paired into books (Front + Back) by name or order. Maximum <strong>50 books</strong> per batch.
+                </div>
+              </div>
+
+              <div class="bulk-drop-zone" id="bulk-drop-zone">
+                <svg class="drop-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <p class="drop-text" style="font-size: 16px;">Drag &amp; drop multiple book photos here</p>
+                <p class="drop-hint">Accepts JPEG, PNG, and WEBP &bull; Max 10MB per file &bull; Up to 50 books</p>
+                <div class="drop-buttons" style="justify-content: center; margin-top: 16px;">
+                  <label class="btn btn-primary btn-sm">
+                    Browse files
+                    <input type="file" id="bulk-files-input" accept="image/jpeg,image/png,image/webp" multiple hidden>
+                  </label>
+                  <label class="btn btn-outline btn-sm camera-btn">
+                    Take photo
+                    <input type="file" id="bulk-camera-input" accept="image/*" capture="environment" multiple hidden>
+                  </label>
+                </div>
+              </div>
+
+              <ul id="bulk-error-list" class="tips-banner hidden" style="border-left-color: var(--danger); margin-top: 16px; list-style: inside;"></ul>
+            </div>
+
+            <!-- Part 2: Review Pairs -->
+            <div id="bulk-review-section" class="hidden">
+              <div class="card" style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                <div>
+                  <h3 class="card-title">Review Book Pairs</h3>
+                  <p class="card-subtitle">Review front &amp; back pairings before starting the queue</p>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                  <button type="button" class="btn btn-outline btn-sm" id="btn-cancel-batch">Cancel</button>
+                  <button type="button" class="btn btn-primary btn-sm" id="btn-start-batch">Start processing</button>
+                </div>
+              </div>
+
+              <div id="order-pairing-notice" class="tips-banner hidden" style="border-left-color: var(--warn); margin-bottom: 16px;">
+                <span>ℹ️ No matching naming patterns found. Files were paired by upload order (1st = front, 2nd = back). You can swap or adjust slots below.</span>
+              </div>
+
+              <div class="pairs-list" id="pairs-list-container"></div>
+
+              <div class="unpaired-tray-container" id="unpaired-tray-section">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 13px; font-weight: 700;">Unpaired files (<span id="unpaired-count">0</span>)</span>
+                  <span style="font-size: 11px; color: var(--muted);">Drag into an empty Back slot or click "+ Book"</span>
+                </div>
+                <div class="unpaired-tray" id="unpaired-tray"></div>
+              </div>
+            </div>
+
+            <!-- Part 3: Queue Progress -->
+            <div id="bulk-queue-section" class="hidden">
+              <div class="card queue-summary-card">
+                <div class="queue-progress-header">
+                  <div>
+                    <h3 class="card-title" id="queue-summary-text">Processing Batch...</h3>
+                    <p class="card-subtitle" id="queue-eta-text">Calculating ETA...</p>
+                  </div>
+                  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-outline btn-xs hidden" id="btn-queue-retry-failed">Retry failed</button>
+                    <button type="button" class="btn btn-outline btn-xs" id="btn-queue-clear-finished">Clear finished</button>
+                    <button type="button" class="btn btn-primary btn-xs hidden" id="btn-queue-review">Go to Review Queue</button>
+                    <button type="button" class="btn btn-outline btn-xs" id="btn-queue-new-batch">New batch</button>
+                  </div>
+                </div>
+                <div class="progress-track" style="height: 10px;">
+                  <div class="progress-bar" id="queue-progress-bar" style="width: 0%; background-color: var(--accent);"></div>
+                </div>
+              </div>
+
+              <div class="card table-card">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 50px;">Cover</th>
+                      <th>Book Details</th>
+                      <th>Status &amp; Step</th>
+                      <th>Confidence</th>
+                      <th style="text-align: right;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="queue-jobs-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. LIBRARY / REVIEW QUEUE VIEW -->
+        <section id="view-library" class="page-view">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; gap: 12px; align-items: center; flex: 1; max-width: 480px;">
+              <input type="text" id="library-search" class="card" style="width: 100%; padding: 10px 14px; font-size: 13px;" placeholder="Search title, author, or ISBN (Ctrl+K or /)...">
+              <select id="library-status-filter" class="card" style="padding: 10px 14px; font-size: 13px;">
+                <option value="">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="confirmed">Confirmed</option>
+              </select>
+            </div>
+            <button id="btn-export-csv" class="btn btn-outline btn-sm">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              Export CSV
+            </button>
+          </div>
+
+          <div class="card table-card">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Cover</th>
+                  <th>Title</th>
+                  <th>Authors</th>
+                  <th>ISBN</th>
+                  <th>Year</th>
+                  <th>Status</th>
+                  <th>Review</th>
+                  <th>Confidence</th>
+                  <th style="text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="library-tbody"></tbody>
+            </table>
+            <div id="library-empty" class="hidden" style="text-align: center; padding: 60px 20px;">
+              <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 4px;">No books found</h3>
+              <p style="font-size: 13px; color: var(--muted);">Scan a book cover to build your catalog.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Review Queue Alias View Container -->
+        <section id="view-review-queue" class="page-view"></section>
+
+        <!-- 4. INSIGHTS VIEW -->
+        <section id="view-insights" class="page-view">
+          <div class="insights-grid" id="insights-grid">
+            <div class="card" id="top-authors-card"></div>
+            <div class="card" id="top-publishers-card"></div>
+            <div class="card" id="languages-card"></div>
+            <div class="card" id="years-card"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- App Bootstrap Module -->
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
