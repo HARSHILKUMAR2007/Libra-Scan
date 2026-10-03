@@ -161,6 +161,24 @@ function setupCanvasEvents() {
       highlightField(hit, true);
     }
   };
+
+  // Mobile Touch Support
+  canvas.addEventListener('touchstart', e => {
+    if (!e.touches[0] || !img?.clientWidth) return;
+    const rect = canvas.getBoundingClientRect();
+    const touchX = e.touches[0].clientX - rect.left;
+    const touchY = e.touches[0].clientY - rect.top;
+    const nx = touchX / img.clientWidth;
+    const ny = touchY / img.clientHeight;
+    const hit = findBoxAt(nx, ny);
+    if (hit) {
+      const input = document.getElementById(`field-${hit}`);
+      if (input) {
+        input.focus();
+        highlightField(hit, true);
+      }
+    }
+  }, { passive: true });
 }
 
 export function highlightField(fieldName, shouldScroll = false) {

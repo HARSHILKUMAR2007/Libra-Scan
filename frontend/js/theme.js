@@ -20,25 +20,24 @@ export function initTheme() {
     }
   });
 
-  const toggleBtn = document.getElementById('theme-toggle-btn');
-  if (toggleBtn) {
-    toggleBtn.addEventListener('click', () => {
+  document.querySelectorAll('.theme-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
       const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
       const next = current === 'dark' ? 'light' : 'dark';
       localStorage.setItem(STORAGE_KEY, next);
       applyTheme(next);
     });
-  }
+  });
 }
 
 export function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
-  const toggleBtn = document.getElementById('theme-toggle-btn');
-  if (toggleBtn) {
-    const label = toggleBtn.querySelector('.theme-toggle-label');
-    const isDark = theme === 'dark';
+  const isDark = theme === 'dark';
+
+  document.querySelectorAll('.theme-toggle-btn').forEach(btn => {
+    const label = btn.querySelector('.theme-toggle-label');
     if (label) label.textContent = isDark ? 'Light mode' : 'Dark mode';
-    toggleBtn.setAttribute('aria-label', `Switch to ${isDark ? 'light' : 'dark'} mode`);
-    toggleBtn.setAttribute('title', `Switch to ${isDark ? 'light' : 'dark'} mode`);
-  }
+    btn.setAttribute('aria-label', `Switch to ${isDark ? 'light' : 'dark'} mode`);
+    btn.setAttribute('title', `Switch to ${isDark ? 'light' : 'dark'} mode`);
+  });
 }

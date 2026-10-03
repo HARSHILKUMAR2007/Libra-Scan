@@ -173,10 +173,13 @@ export async function updateActiveSidebarBadge() {
     const res = await fetchActiveBatches();
     const count = res.active_job_count || 0;
     const badge = document.getElementById('nav-scan-badge');
-    if (badge) {
-      badge.textContent = count;
-      badge.classList.toggle('hidden', count === 0);
-    }
+    const mobBadge = document.getElementById('mob-nav-scan-badge');
+    [badge, mobBadge].forEach(b => {
+      if (b) {
+        b.textContent = count;
+        b.classList.toggle('hidden', count === 0);
+      }
+    });
   } catch (err) {}
 }
 

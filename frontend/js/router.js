@@ -9,11 +9,11 @@ import { loadLibraryView } from './views/library.js';
 import { renderInsights } from './views/insights.js';
 
 export const ROUTES = {
-  overview: { id: 'view-overview', title: 'Library Overview', nav: 'nav-overview-btn' },
-  scan: { id: 'view-scan', title: 'New Scan', nav: 'nav-scan-btn' },
-  library: { id: 'view-library', title: 'Library Catalog', nav: 'nav-library-btn' },
-  review: { id: 'view-library', title: 'Review Queue', nav: 'nav-review-btn' },
-  insights: { id: 'view-insights', title: 'Catalog Insights', nav: 'nav-insights-btn' }
+  overview: { id: 'view-overview', title: 'Library Overview', nav: 'nav-overview-btn', mobNav: 'mob-nav-overview' },
+  scan: { id: 'view-scan', title: 'New Scan', nav: 'nav-scan-btn', mobNav: 'mob-nav-scan' },
+  library: { id: 'view-library', title: 'Library Catalog', nav: 'nav-library-btn', mobNav: 'mob-nav-library' },
+  review: { id: 'view-library', title: 'Review Queue', nav: 'nav-review-btn', mobNav: 'mob-nav-review' },
+  insights: { id: 'view-insights', title: 'Catalog Insights', nav: 'nav-insights-btn', mobNav: 'mob-nav-insights' }
 };
 
 export function initRouter() {
@@ -23,6 +23,12 @@ export function initRouter() {
       renderOverview();
     }
   });
+  document.getElementById('mob-nav-overview')?.addEventListener('click', () => {
+    if (window.location.hash === '#overview' || !window.location.hash) {
+      renderOverview();
+    }
+  });
+
   if (!window.location.hash || !ROUTES[window.location.hash.slice(1)]) {
     window.location.hash = '#overview';
   }
@@ -37,7 +43,7 @@ export function handleRoute() {
   const hash = (window.location.hash || '#overview').slice(1);
   const route = ROUTES[hash] ? hash : 'overview';
 
-  // Toggle active view sections and navigation items
+  // Toggle active view sections
   const activeViewId = ROUTES[route]?.id || 'view-overview';
   const allViewIds = new Set(Object.values(ROUTES).map(r => r.id));
   allViewIds.forEach(id => {
@@ -45,9 +51,13 @@ export function handleRoute() {
     if (el) el.classList.toggle('active', id === activeViewId);
   });
 
+  // Toggle sidebar navigation items and mobile bottom nav items
   Object.keys(ROUTES).forEach(r => {
     const navBtn = document.getElementById(ROUTES[r].nav);
     if (navBtn) navBtn.classList.toggle('active', r === route);
+
+    const mobNavBtn = document.getElementById(ROUTES[r].mobNav);
+    if (mobNavBtn) mobNavBtn.classList.toggle('active', r === route);
   });
 
   // Update topbar headers
@@ -72,9 +82,11 @@ export function handleRoute() {
     }
   }
 
-  // Close mobile sidebar
-  const sidebar = document.getElementById('sidebar');
-  if (sidebar) sidebar.classList.remove('open');
+  // Close mobile sidebar and backdrop
+  toggleSidebar(false);
+
+  // Scroll to top of content smoothly
+  window.scrollTo({ top: 0, behavior: 'instant' });
 
   // Trigger view renderers
   if (route === 'overview') {
@@ -92,22 +104,27 @@ export function handleRoute() {
 
 export function updateSidebarBadges(needsReviewCount) {
   const badge = document.getElementById('nav-review-badge');
-  if (badge) {
-    if (needsReviewCount > 0) {
-      badge.textContent = needsReviewCount;
-      badge.classList.remove('hidden');
-    } else {
-      badge.classList.add('hidden');
+  const mobBadge = document.getElementById('mob-nav-review-badge');
+
+  [badge, mobBadge].forEach(b => {
+    if (b) {
+      if (needsReviewCount > 0) {
+        b.textContent = needsReviewCount;
+        b.classList.remove('hidden');
+      } else {
+        b.classList.add('hidden');
+      }
     }
-  }
+  });
 }
 
 export function toggleSidebar(forceOpen) {
   const sb = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
   if (!sb) return;
-  if (typeof forceOpen === 'boolean') {
-    sb.classList.toggle('open', forceOpen);
-  } else {
-    sb.classList.toggle('open');
-  }
+
+  const willOpen = typeof forceOpen === 'boolean' ? forceOpen : !sb.classList.contains('open');
+  sb.classList.toggle('open', willOpen);
+  if (backdrop) backdrop.classList.toggle('open', willOpen);
+  document.body.classList.toggle('sidebar-locked', willOpen);
 }
