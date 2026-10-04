@@ -1,7 +1,7 @@
 """Pydantic schemas for book details and extraction results."""
 
 from typing import Any, Generic, Literal, Optional, TypeVar
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.ocr import OcrLine
 
@@ -19,6 +19,9 @@ class FieldValue(BaseModel, Generic[T]):
 class BookDetails(BaseModel):
     """Structured cataloging details extracted from OCR text by the LLM."""
 
+    model_config = ConfigDict(extra="forbid")
+
+    is_book_cover: bool = True
     title: FieldValue[str] = Field(default_factory=FieldValue)
     subtitle: FieldValue[str] = Field(default_factory=FieldValue)
     authors: FieldValue[list[str]] = Field(default_factory=FieldValue)

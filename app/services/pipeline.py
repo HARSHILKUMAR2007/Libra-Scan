@@ -8,6 +8,7 @@ from typing import Callable, Optional
 from app.schemas.book import BookDetails, BookResult, ImageDimensions, ImageMeta, ProcessedField
 from app.schemas.ocr import OcrLine, OcrResult
 from app.services.geometry import merge_boxes_for_field
+from app.services.guard import NotABookError, cap_lines, check_is_book, filter_lines, ground_and_validate
 from app.services.isbn import extract_isbns_from_text, validate_and_sanitize_isbns
 from app.services.llm import build_prompt_ocr_block, extract_book
 from app.services.ocr import run_ocr
@@ -75,20 +76,37 @@ def process_book_images(
     all_lines = front_lines + back_lines
     if not all_lines:
         raise ValueError("No text detected")
+
+    all_lines, guard_warnings, flagged = filter_lines(all_lines)
+    check_is_book(all_lines)
+    capped_lines = cap_lines(all_lines)
     lines_by_id = {line.id: line for line in all_lines}
 
     isbn_hint = ""
-    if back_lines:
-        b_text = " ".join(line.text for line in back_lines)
+    back_lines_kept = [l for l in all_lines if l.image == "back"]
+    if back_lines_kept:
+        b_text = " ".join(line.text for line in back_lines_kept)
         found_10, found_13 = extract_isbns_from_text(b_text)
         found_all = found_13 + found_10
         if found_all:
             isbn_hint = found_all[0]
 
-    prompt_ocr_block = build_prompt_ocr_block(front_lines, back_lines if back_bytes else None)
+    front_prompt_lines = [l for l in capped_lines if l.image == "front"]
+    back_prompt_lines = [l for l in capped_lines if l.image == "back"]
+    prompt_ocr_block = build_prompt_ocr_block(front_prompt_lines, back_prompt_lines if back_bytes else None)
     if progress_callback:
         progress_callback("Extracting details")
     book_details = extract_book(prompt_ocr_block, isbn_hint=isbn_hint)
+
+    raw_dict_pre = book_details.model_dump()
+    all_fields_null = all(
+        f_data.get("value") in (None, "", [])
+        for k, f_data in raw_dict_pre.items() if isinstance(f_data, dict) and "value" in f_data
+    )
+    if not book_details.is_book_cover and all_fields_null:
+        raise NotABookError()
+
+    book_details, gv_warnings = ground_and_validate(book_details, all_lines)
     raw_dict = book_details.model_dump()
 
     clean_v10, clean_v13, isbn_warnings = validate_and_sanitize_isbns(
@@ -96,10 +114,13 @@ def process_book_images(
     )
     raw_dict["isbn10"]["value"], raw_dict["isbn13"]["value"] = clean_v10, clean_v13
 
-    warnings = list(isbn_warnings)
-    needs_review = bool(isbn_warnings)
+    warnings = list(guard_warnings) + list(gv_warnings) + list(isbn_warnings)
+    needs_review = bool(flagged) or bool(gv_warnings) or bool(isbn_warnings)
 
-    all_null = all(f_data.get("value") in (None, "", []) for f_data in raw_dict.values())
+    all_null = all(
+        f_data.get("value") in (None, "", [])
+        for k, f_data in raw_dict.items() if isinstance(f_data, dict) and "value" in f_data
+    )
     if all_null:
         needs_review = True
         warnings.append("No details could be extracted")
@@ -111,6 +132,8 @@ def process_book_images(
     fields: dict[str, ProcessedField] = {}
     confidences: list[float] = []
     for name, f_data in raw_dict.items():
+        if not isinstance(f_data, dict) or "value" not in f_data:
+            continue
         val = f_data.get("value")
         conf = float(f_data.get("confidence", 0.0))
         valid_ids = [lid for lid in f_data.get("source_line_ids", []) if lid in lines_by_id]

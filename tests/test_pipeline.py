@@ -77,7 +77,7 @@ def test_pipeline_drops_invalid_source_id_and_flags_identical_images():
     img_bytes = _make_dummy_image(120, 120, 80)
 
     fake_ocr = OcrResult(
-        lines=[OcrLine(id=0, text="Only Line", polygon=[], bbox=(0.1, 0.1, 0.9, 0.2), confidence=0.9)],
+        lines=[OcrLine(id=0, text="Valid Title Line by Some Author", polygon=[], bbox=(0.1, 0.1, 0.9, 0.2), confidence=0.9)],
         width=120,
         height=120,
     )
