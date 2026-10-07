@@ -193,10 +193,35 @@ export function displayBookReview(book) {
     let val = (fieldData.value !== undefined && fieldData.value !== null && fieldData.value !== '')
       ? fieldData.value
       : (book[key] !== undefined && book[key] !== null ? book[key] : '');
-    if (Array.isArray(val)) val = val.join(', ');
-    if (input) input.value = val;
 
-    const conf = fieldData.confidence !== undefined ? fieldData.confidence : (val ? 1.0 : 0.0);
+    // Intelligent client fallback: if field is empty, inspect book.ocr_lines
+    if ((val === '' || val === null || (Array.isArray(val) && val.length === 0)) && book.ocr_lines?.length) {
+      if (key === 'isbn13' || key === 'isbn10') {
+        const fullOcr = book.ocr_lines.map(l => l.text).join(' ');
+        const m13 = fullOcr.match(/97[89][-\s\d]{10,14}/);
+        if (m13 && key === 'isbn13') {
+          val = m13[0].replace(/[^0-9X]/gi, '');
+        }
+      } else if (key === 'year') {
+        for (const l of book.ocr_lines) {
+          const ym = l.text.match(/\b(19\d{2}|20[0-2]\d)\b/);
+          if (ym) { val = parseInt(ym[1]); break; }
+        }
+      } else if (key === 'language') {
+        val = 'English';
+      } else if (key === 'title') {
+        const frontLines = book.ocr_lines.filter(l => l.image === 'front');
+        if (frontLines.length) {
+          const sorted = [...frontLines].sort((a, b) => (b.bbox[3] - b.bbox[1]) - (a.bbox[3] - a.bbox[1]));
+          val = sorted[0].text;
+        }
+      }
+    }
+
+    if (Array.isArray(val)) val = val.join(', ');
+    if (input) input.value = (val !== null && val !== undefined) ? val : '';
+
+    const conf = fieldData.confidence !== undefined ? fieldData.confidence : (val ? 0.9 : 0.0);
     if (badge) {
       if (val) {
         badge.textContent = `${Math.round(conf * 100)}%`;

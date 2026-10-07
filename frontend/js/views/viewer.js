@@ -4,6 +4,7 @@
 
 import { FIELD_COLORS } from '../../config.js';
 import { state } from '../state.js';
+import { showToast } from '../toast.js';
 
 let canvas, ctx, img, tooltip;
 
@@ -125,12 +126,30 @@ function findBoxAt(nx, ny) {
   return best;
 }
 
+function findOcrLineAt(nx, ny) {
+  if (!state.currentBook?.ocr_lines) return null;
+  const lines = state.currentBook.ocr_lines.filter(l => l.image === state.activeSide);
+  let best = null, minArea = Infinity;
+  for (const l of lines) {
+    const [x1, y1, x2, y2] = l.bbox;
+    if (nx >= x1 && nx <= x2 && ny >= y1 && ny <= y2) {
+      const area = (x2 - x1) * (y2 - y1);
+      if (area < minArea) {
+        minArea = area;
+        best = l;
+      }
+    }
+  }
+  return best;
+}
+
 function setupCanvasEvents() {
   canvas.onmousemove = e => {
     state.isHoveringCanvas = true;
     const nx = e.offsetX / img.clientWidth;
     const ny = e.offsetY / img.clientHeight;
     const hit = findBoxAt(nx, ny);
+    const lineHit = !hit ? findOcrLineAt(nx, ny) : null;
 
     if (hit) {
       canvas.style.cursor = 'pointer';
@@ -140,6 +159,13 @@ function setupCanvasEvents() {
       tooltip.style.top = `${img.offsetTop + e.offsetY}px`;
       tooltip.classList.remove('hidden');
       highlightField(hit, true);
+    } else if (lineHit) {
+      canvas.style.cursor = 'pointer';
+      const activeField = state.activeField || document.activeElement?.closest('.form-group')?.dataset?.field;
+      tooltip.textContent = activeField ? `Click to fill into ${activeField.toUpperCase()}: "${lineHit.text}"` : `OCR: "${lineHit.text}"`;
+      tooltip.style.left = `${img.offsetLeft + e.offsetX}px`;
+      tooltip.style.top = `${img.offsetTop + e.offsetY}px`;
+      tooltip.classList.remove('hidden');
     } else {
       canvas.style.cursor = 'default';
       tooltip.classList.add('hidden');
@@ -156,10 +182,24 @@ function setupCanvasEvents() {
   };
 
   canvas.onclick = e => {
-    const hit = findBoxAt(e.offsetX / img.clientWidth, e.offsetY / img.clientHeight);
+    const nx = e.offsetX / img.clientWidth;
+    const ny = e.offsetY / img.clientHeight;
+    const hit = findBoxAt(nx, ny);
     if (hit) {
       document.getElementById(`field-${hit}`)?.focus();
       highlightField(hit, true);
+      return;
+    }
+    const lineHit = findOcrLineAt(nx, ny);
+    if (lineHit) {
+      const targetField = state.activeField || document.activeElement?.closest('.form-group')?.dataset?.field || 'title';
+      const input = document.getElementById(`field-${targetField}`);
+      if (input) {
+        input.value = lineHit.text;
+        input.focus();
+        highlightField(targetField, true);
+        showToast(`Copied text into ${targetField}!`, 'info');
+      }
     }
   };
 
@@ -177,6 +217,18 @@ function setupCanvasEvents() {
       if (input) {
         input.focus();
         highlightField(hit, true);
+      }
+      return;
+    }
+    const lineHit = findOcrLineAt(nx, ny);
+    if (lineHit) {
+      const targetField = state.activeField || document.activeElement?.closest('.form-group')?.dataset?.field || 'title';
+      const input = document.getElementById(`field-${targetField}`);
+      if (input) {
+        input.value = lineHit.text;
+        input.focus();
+        highlightField(targetField, true);
+        showToast(`Copied text into ${targetField}!`, 'info');
       }
     }
   }, { passive: true });

@@ -1,8 +1,10 @@
 """End-to-end book processing pipeline chaining preprocessing, OCR, and LLM."""
 
 import concurrent.futures
+from datetime import datetime
 import hashlib
 import logging
+import re
 from typing import Callable, Optional
 
 from app.schemas.book import BookDetails, BookResult, ImageDimensions, ImageMeta, ProcessedField
@@ -106,7 +108,8 @@ def process_book_images(
     book_details, gv_warnings = ground_and_validate(book_details, all_lines)
     raw_dict = book_details.model_dump()
 
-    # Direct fallback: if LLM didn't capture or returned null for ISBNs, auto-populate from OCR regex
+    # Universal OCR fallbacks: auto-populate any missing fields detected in OCR text
+    # 1. ISBNs
     curr_v10 = raw_dict["isbn10"].get("value")
     curr_v13 = raw_dict["isbn13"].get("value")
     if not curr_v13 and found_13:
@@ -118,32 +121,91 @@ def process_book_images(
 
     clean_v10, clean_v13, isbn_warnings = validate_and_sanitize_isbns(curr_v10, curr_v13)
     raw_dict["isbn10"]["value"], raw_dict["isbn13"]["value"] = clean_v10, clean_v13
-
     if clean_v10 and not raw_dict["isbn10"].get("confidence"):
         raw_dict["isbn10"]["confidence"] = 0.92
     if clean_v13 and not raw_dict["isbn13"].get("confidence"):
         raw_dict["isbn13"]["confidence"] = 0.95
 
-    # Auto-map bounding boxes to OCR lines where ISBN was located if source_line_ids is missing
-    for isbn_key, isbn_val in [("isbn13", clean_v13), ("isbn10", clean_v10)]:
-        if isbn_val and not raw_dict[isbn_key].get("source_line_ids"):
-            clean_digits = clean_isbn(isbn_val)
-            matching_ids = []
-            for line in all_lines:
-                line_clean = clean_isbn(line.text)
-                if clean_digits in line_clean or (len(clean_digits) >= 8 and clean_digits[-8:] in line_clean):
-                    matching_ids.append(line.id)
-            if matching_ids:
-                raw_dict[isbn_key]["source_line_ids"] = matching_ids
+    # 2. Publication Year
+    if not raw_dict.get("year", {}).get("value"):
+        year_matches = []
+        for line in all_lines:
+            m = re.search(r"\b(19\d{2}|20[0-2]\d)\b", line.text)
+            if m:
+                y = int(m.group(1))
+                if 1800 <= y <= datetime.now().year:
+                    score = 2 if re.search(r"©|copyright|published|first\s+edition|printing", line.text, re.I) else 1
+                    year_matches.append((score, y, line.id))
+        if year_matches:
+            year_matches.sort(key=lambda item: item[0], reverse=True)
+            raw_dict["year"]["value"] = year_matches[0][1]
+            raw_dict["year"]["confidence"] = 0.88
+            raw_dict["year"]["source_line_ids"] = [year_matches[0][2]]
+
+    # 3. Publisher
+    if not raw_dict.get("publisher", {}).get("value"):
+        pub_pattern = re.compile(
+            r"\b([A-Z][A-Za-z0-9&'\s]{2,40}\b(?:Publishing|Publishers|Publisher|Press|Books|Publications|Media|House))\b|"
+            r"\b(Penguin|HarperCollins|O'Reilly|Routledge|Wiley|McGraw-Hill|Pearson|Scholastic|Oxford|Cambridge|Vintage|Tor|Macmillan|Simon\s*&\s*Schuster|Hachette|Bloomsbury|MIT Press)\b",
+            re.IGNORECASE
+        )
+        for line in all_lines:
+            pm = pub_pattern.search(line.text)
+            if pm:
+                found_pub = (pm.group(1) or pm.group(2)).strip()
+                if len(found_pub) > 2:
+                    raw_dict["publisher"]["value"] = found_pub
+                    raw_dict["publisher"]["confidence"] = 0.82
+                    raw_dict["publisher"]["source_line_ids"] = [line.id]
+                    break
+
+    # 4. Title (largest text line on front cover)
+    if not raw_dict.get("title", {}).get("value"):
+        front_only = [l for l in all_lines if l.image == "front"]
+        if front_only:
+            sorted_by_height = sorted(front_only, key=lambda l: (l.bbox[3] - l.bbox[1]), reverse=True)
+            title_lines = [
+                l for l in sorted_by_height
+                if len(l.text.strip()) > 2 and not clean_isbn(l.text).isdigit() and not re.match(r"^\d+$", l.text.strip())
+            ]
+            if title_lines:
+                top_line = title_lines[0]
+                raw_dict["title"]["value"] = top_line.text.strip()
+                raw_dict["title"]["confidence"] = 0.75
+                raw_dict["title"]["source_line_ids"] = [top_line.id]
+
+    # 5. Authors
+    if not raw_dict.get("authors", {}).get("value"):
+        front_only = [l for l in all_lines if l.image == "front"]
+        for line in front_only:
+            m = re.search(r"\b(?:by|written\s+by)\s+([A-Z][a-zA-Z\s.'-]+)", line.text, re.I)
+            if m:
+                cand = m.group(1).strip()
+                if len(cand) > 2:
+                    raw_dict["authors"]["value"] = [cand]
+                    raw_dict["authors"]["confidence"] = 0.75
+                    raw_dict["authors"]["source_line_ids"] = [line.id]
+                    break
+
+    # 6. Language
+    if not raw_dict.get("language", {}).get("value"):
+        raw_dict["language"]["value"] = "English"
+        raw_dict["language"]["confidence"] = 0.85
+
+    # 7. Auto-map bounding boxes to OCR lines for ALL fields if source_line_ids is missing
+    for f_name, f_info in raw_dict.items():
+        if isinstance(f_info, dict) and f_info.get("value") and not f_info.get("source_line_ids"):
+            val_text = str(f_info["value"]).lower()
+            tokens = [t for t in re.findall(r"\w+", val_text) if len(t) > 2]
+            if tokens:
+                matching = [l.id for l in all_lines if any(t in l.text.lower() for t in tokens)]
+                if matching:
+                    f_info["source_line_ids"] = matching
 
     warnings = list(guard_warnings) + list(gv_warnings) + list(isbn_warnings)
     needs_review = bool(flagged) or bool(gv_warnings) or bool(isbn_warnings)
 
-    all_null = all(
-        f_data.get("value") in (None, "", [])
-        for k, f_data in raw_dict.items() if isinstance(f_data, dict) and "value" in f_data
-    )
-    if all_null:
+    if all_fields_null:
         needs_review = True
         warnings.append("No details could be extracted")
 

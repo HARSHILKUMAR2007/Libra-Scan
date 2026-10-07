@@ -86,12 +86,17 @@ def cap_lines(lines: list[OcrLine]) -> list[OcrLine]:
 
 def _is_grounded(val: str, ref: str) -> bool:
     v_norm, r_norm = re.sub(r"[^a-z0-9]", "", val.lower()), re.sub(r"[^a-z0-9]", "", ref.lower())
-    if not v_norm or v_norm in r_norm:
+    if not v_norm or v_norm in r_norm or (len(v_norm) > 4 and r_norm in v_norm):
         return True
-    v_toks, r_toks = re.findall(r"\w+", val.lower()), re.findall(r"\w+", ref.lower())
-    if not v_toks or not r_toks:
+    v_toks = [t for t in re.findall(r"\w+", val.lower()) if len(t) > 2]
+    r_toks = re.findall(r"\w+", ref.lower())
+    if not v_toks:
+        v_simple = val.strip().lower()
+        return bool(v_simple and v_simple in ref.lower())
+    if not r_toks:
         return False
-    return sum(1 for v in v_toks if any(difflib.SequenceMatcher(None, v, r).ratio() >= GROUND_THRESHOLD for r in r_toks)) == len(v_toks)
+    matched = sum(1 for v in v_toks if any(difflib.SequenceMatcher(None, v, r).ratio() >= GROUND_THRESHOLD for r in r_toks))
+    return (matched / len(v_toks)) >= 0.5
 
 
 def _forbidden(s: str) -> bool:
@@ -112,12 +117,14 @@ def ground_and_validate(details: BookDetails, lines: list[OcrLine]) -> tuple[Boo
         elif name in FIELD_LIMITS and len(v_str) > FIELD_LIMITS[name]:
             f.value, f.confidence = None, 0.0
             warnings.append(f"Field {name} removed: exceeds length limit ({FIELD_LIMITS[name]})")
-        elif name == "year" and not (isinstance(f.value, int) and 1400 <= f.value <= datetime.now().year):
-            f.value, f.confidence = None, 0.0
-            warnings.append(f"Field year removed: invalid year {v_str}")
-        elif name == "language" and not (len(v_str) <= 35 and not re.search(r"[<>{}[\]\\0-9]", v_str)):
-            f.value, f.confidence = None, 0.0
-            warnings.append("Field language removed: invalid format")
+        elif name == "year":
+            if not (isinstance(f.value, int) and 1400 <= f.value <= datetime.now().year):
+                f.value, f.confidence = None, 0.0
+                warnings.append(f"Field year removed: invalid year {v_str}")
+        elif name == "language":
+            if not (len(v_str) <= 35 and not re.search(r"[<>{}[\]\\0-9]", v_str)):
+                f.value, f.confidence = None, 0.0
+                warnings.append("Field language removed: invalid format")
         elif name == "isbn10":
             if not is_valid_isbn10(v_str):
                 f.value, f.confidence = None, 0.0
@@ -143,9 +150,15 @@ def ground_and_validate(details: BookDetails, lines: list[OcrLine]) -> tuple[Boo
         else:
             valid_ids = [i for i in f.source_line_ids if i in by_id]
             ref = " ".join(by_id[i].text for i in valid_ids) if valid_ids else all_text
-            if not _is_grounded(v_str, ref):
+            is_valid = _is_grounded(v_str, ref) or _is_grounded(v_str, all_text)
+            if not is_valid:
                 f.value, f.confidence = None, 0.0
                 warnings.append(f"Field {name} removed: not found in OCR text")
+            elif not valid_ids:
+                v_toks = [t for t in re.findall(r"\w+", v_str.lower()) if len(t) > 2]
+                matched_ids = [l.id for l in lines if any(t in l.text.lower() for t in v_toks)]
+                if matched_ids:
+                    f.source_line_ids = matched_ids
 
     if details.authors and details.authors.value:
         raw = details.authors.value[:MAX_AUTHORS]
@@ -158,11 +171,16 @@ def ground_and_validate(details: BookDetails, lines: list[OcrLine]) -> tuple[Boo
             if not _forbidden(a)
             and len(a) <= FIELD_LIMITS["author"]
             and not re.search(r"[<>{}[\]\\]", a)
-            and _is_grounded(a.strip(), ref)
+            and (_is_grounded(a.strip(), ref) or _is_grounded(a.strip(), all_text))
         ]
         if not valid:
             details.authors.value, details.authors.confidence = None, 0.0
             warnings.append("Field authors removed: not found in OCR text")
         else:
             details.authors.value = valid
+            if not valid_ids:
+                all_a_toks = [t for a in valid for t in re.findall(r"\w+", a.lower()) if len(t) > 2]
+                matched_ids = [l.id for l in lines if any(t in l.text.lower() for t in all_a_toks)]
+                if matched_ids:
+                    details.authors.source_line_ids = matched_ids
     return details, warnings
