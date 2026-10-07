@@ -190,14 +190,21 @@ export function displayBookReview(book) {
     const chipsContainer = document.getElementById(`chips-${key}`);
     const fieldData = book.field_boxes?.[key] || {};
 
-    let val = fieldData.value ?? book[key] ?? '';
+    let val = (fieldData.value !== undefined && fieldData.value !== null && fieldData.value !== '')
+      ? fieldData.value
+      : (book[key] !== undefined && book[key] !== null ? book[key] : '');
     if (Array.isArray(val)) val = val.join(', ');
     if (input) input.value = val;
 
-    const conf = fieldData.confidence ?? (book[key] ? 1.0 : 0.0);
+    const conf = fieldData.confidence !== undefined ? fieldData.confidence : (val ? 1.0 : 0.0);
     if (badge) {
-      badge.textContent = `${Math.round(conf * 100)}%`;
-      badge.className = `badge ${conf >= 0.85 ? 'badge-green' : conf >= 0.6 ? 'badge-amber' : 'badge-red'}`;
+      if (val) {
+        badge.textContent = `${Math.round(conf * 100)}%`;
+        badge.className = `badge ${conf >= 0.85 ? 'badge-green' : conf >= 0.6 ? 'badge-amber' : 'badge-red'}`;
+      } else {
+        badge.textContent = 'Not found';
+        badge.className = 'badge badge-muted';
+      }
     }
 
     if (chipsContainer) {
@@ -206,10 +213,10 @@ export function displayBookReview(book) {
       const hasBack = boxes.some(b => b.image === 'back');
       chipsContainer.innerHTML = '';
       if (hasFront) {
-        chipsContainer.innerHTML += `<span class="source-chip chip-front" style="cursor:pointer;" title="Visible on front" onclick="window.switchViewerSide('front')">Front</span>`;
+        chipsContainer.innerHTML += `<span class="source-chip chip-front" style="cursor:pointer;" title="View on front cover" onclick="window.switchViewerSide('front')">Front</span>`;
       }
       if (hasBack) {
-        chipsContainer.innerHTML += `<span class="source-chip chip-back" style="cursor:pointer;" title="Visible on back" onclick="window.switchViewerSide('back')">Back</span>`;
+        chipsContainer.innerHTML += `<span class="source-chip chip-back" style="cursor:pointer;" title="View on back cover" onclick="window.switchViewerSide('back')">Back</span>`;
       }
     }
   }

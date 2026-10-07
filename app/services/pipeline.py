@@ -9,7 +9,7 @@ from app.schemas.book import BookDetails, BookResult, ImageDimensions, ImageMeta
 from app.schemas.ocr import OcrLine, OcrResult
 from app.services.geometry import merge_boxes_for_field
 from app.services.guard import NotABookError, cap_lines, check_is_book, filter_lines, ground_and_validate
-from app.services.isbn import extract_isbns_from_text, validate_and_sanitize_isbns
+from app.services.isbn import clean_isbn, extract_isbns_from_text, validate_and_sanitize_isbns
 from app.services.llm import build_prompt_ocr_block, extract_book
 from app.services.ocr import run_ocr
 from app.services.preprocess import preprocess
@@ -82,14 +82,11 @@ def process_book_images(
     capped_lines = cap_lines(all_lines)
     lines_by_id = {line.id: line for line in all_lines}
 
-    isbn_hint = ""
-    back_lines_kept = [l for l in all_lines if l.image == "back"]
-    if back_lines_kept:
-        b_text = " ".join(line.text for line in back_lines_kept)
-        found_10, found_13 = extract_isbns_from_text(b_text)
-        found_all = found_13 + found_10
-        if found_all:
-            isbn_hint = found_all[0]
+    # Scan all OCR lines across front and back for ISBN patterns
+    all_ocr_text = " ".join(line.text for line in all_lines)
+    found_10, found_13 = extract_isbns_from_text(all_ocr_text)
+    found_all = found_13 + found_10
+    isbn_hint = found_all[0] if found_all else ""
 
     front_prompt_lines = [l for l in capped_lines if l.image == "front"]
     back_prompt_lines = [l for l in capped_lines if l.image == "back"]
@@ -109,10 +106,35 @@ def process_book_images(
     book_details, gv_warnings = ground_and_validate(book_details, all_lines)
     raw_dict = book_details.model_dump()
 
-    clean_v10, clean_v13, isbn_warnings = validate_and_sanitize_isbns(
-        raw_dict["isbn10"].get("value"), raw_dict["isbn13"].get("value")
-    )
+    # Direct fallback: if LLM didn't capture or returned null for ISBNs, auto-populate from OCR regex
+    curr_v10 = raw_dict["isbn10"].get("value")
+    curr_v13 = raw_dict["isbn13"].get("value")
+    if not curr_v13 and found_13:
+        curr_v13 = found_13[0]
+        raw_dict["isbn13"]["confidence"] = 0.95
+    if not curr_v10 and found_10:
+        curr_v10 = found_10[0]
+        raw_dict["isbn10"]["confidence"] = 0.95
+
+    clean_v10, clean_v13, isbn_warnings = validate_and_sanitize_isbns(curr_v10, curr_v13)
     raw_dict["isbn10"]["value"], raw_dict["isbn13"]["value"] = clean_v10, clean_v13
+
+    if clean_v10 and not raw_dict["isbn10"].get("confidence"):
+        raw_dict["isbn10"]["confidence"] = 0.92
+    if clean_v13 and not raw_dict["isbn13"].get("confidence"):
+        raw_dict["isbn13"]["confidence"] = 0.95
+
+    # Auto-map bounding boxes to OCR lines where ISBN was located if source_line_ids is missing
+    for isbn_key, isbn_val in [("isbn13", clean_v13), ("isbn10", clean_v10)]:
+        if isbn_val and not raw_dict[isbn_key].get("source_line_ids"):
+            clean_digits = clean_isbn(isbn_val)
+            matching_ids = []
+            for line in all_lines:
+                line_clean = clean_isbn(line.text)
+                if clean_digits in line_clean or (len(clean_digits) >= 8 and clean_digits[-8:] in line_clean):
+                    matching_ids.append(line.id)
+            if matching_ids:
+                raw_dict[isbn_key]["source_line_ids"] = matching_ids
 
     warnings = list(guard_warnings) + list(gv_warnings) + list(isbn_warnings)
     needs_review = bool(flagged) or bool(gv_warnings) or bool(isbn_warnings)

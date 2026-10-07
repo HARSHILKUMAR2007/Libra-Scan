@@ -143,7 +143,7 @@ function setupCanvasEvents() {
     } else {
       canvas.style.cursor = 'default';
       tooltip.classList.add('hidden');
-      const focused = document.activeElement?.dataset?.field;
+      const focused = document.activeElement?.closest('.form-group')?.dataset?.field;
       highlightField(focused || null);
     }
   };
@@ -151,7 +151,8 @@ function setupCanvasEvents() {
   canvas.onmouseleave = () => {
     state.isHoveringCanvas = false;
     tooltip.classList.add('hidden');
-    highlightField(document.activeElement?.dataset?.field || null);
+    const focused = document.activeElement?.closest('.form-group')?.dataset?.field;
+    highlightField(focused || null);
   };
 
   canvas.onclick = e => {
@@ -207,7 +208,7 @@ function setupFormHoverSync() {
     const field = fg.dataset.field;
     fg.onmouseenter = () => { if (!state.isHoveringCanvas) highlightField(field); };
     fg.onmouseleave = () => {
-      if (!state.isHoveringCanvas && document.activeElement?.dataset?.field !== field) {
+      if (!state.isHoveringCanvas && document.activeElement?.closest('.form-group')?.dataset?.field !== field) {
         highlightField(null);
       }
     };

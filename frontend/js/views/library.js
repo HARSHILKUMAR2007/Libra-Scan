@@ -14,8 +14,8 @@ let isReviewQueueMode = false;
 export async function loadLibraryView(reviewQueueMode = false) {
   isReviewQueueMode = reviewQueueMode;
 
-  const titleEl = document.getElementById('library-view-title');
-  const subtitleEl = document.getElementById('library-view-subtitle');
+  const titleEl = document.getElementById('library-view-title') || document.getElementById('main-page-title');
+  const subtitleEl = document.getElementById('library-view-subtitle') || document.getElementById('main-page-subtitle');
   const filterStatus = document.getElementById('library-status-filter');
 
   if (titleEl) titleEl.textContent = reviewQueueMode ? 'Review Queue' : 'Library Catalog';
