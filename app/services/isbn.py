@@ -81,22 +81,11 @@ def extract_isbns_from_text(text: str) -> tuple[list[str], list[str]]:
             elif len(cleaned) == 10 and is_valid_isbn10(cleaned) and cleaned not in isbn10_found:
                 isbn10_found.append(cleaned)
 
-    # Auto-derive missing counterparts if valid
-    for v13 in list(isbn13_found):
-        conv10 = isbn13_to_isbn10(v13)
-        if conv10 and conv10 not in isbn10_found:
-            isbn10_found.append(conv10)
-
-    for v10 in list(isbn10_found):
-        conv13 = isbn10_to_isbn13(v10)
-        if conv13 and conv13 not in isbn13_found:
-            isbn13_found.append(conv13)
-
     return isbn10_found, isbn13_found
 
 
 def validate_and_sanitize_isbns(isbn10: Optional[str], isbn13: Optional[str]) -> tuple[Optional[str], Optional[str], list[str]]:
-    """Validate ISBNs provided by LLM; invalidate bad checksums, derive complementary versions and create warnings."""
+    """Validate ISBNs provided by LLM; invalidate bad checksums and create warnings."""
     warnings: list[str] = []
     v10 = clean_isbn(isbn10) if isbn10 else None
     v13 = clean_isbn(isbn13) if isbn13 else None
@@ -113,10 +102,8 @@ def validate_and_sanitize_isbns(isbn10: Optional[str], isbn13: Optional[str]) ->
             warnings.append(f"Extracted ISBN-13 '{isbn13}' failed checksum validation.")
             v13 = None
 
-    # Bidirectional conversion: populate missing from present
-    if v13 and not v10:
-        v10 = isbn13_to_isbn10(v13)
-    elif v10 and not v13:
+    # Upgrade older pre-2007 ISBN-10 to modern ISBN-13 if ISBN-13 was missing
+    if v10 and not v13:
         v13 = isbn10_to_isbn13(v10)
 
     return v10, v13, warnings
