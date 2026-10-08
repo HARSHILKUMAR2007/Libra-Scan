@@ -36,13 +36,19 @@ def list_books(session: Session, status: Optional[str] = None, skip: int = 0, li
 
 
 def update_book(session: Session, book_id: int, updates: dict) -> Optional[Book]:
-    """Apply partial updates to a book record."""
+    """Apply partial updates to a book record and synchronize field_boxes."""
     book = get_book(session, book_id)
     if not book:
         return None
     for key, value in updates.items():
         if hasattr(book, key):
             setattr(book, key, value)
+    if book.field_boxes and isinstance(book.field_boxes, dict):
+        fb = dict(book.field_boxes)
+        for key, value in updates.items():
+            if key in fb and isinstance(fb[key], dict):
+                fb[key] = {**fb[key], "value": value}
+        book.field_boxes = fb
     session.commit()
     session.refresh(book)
     return book

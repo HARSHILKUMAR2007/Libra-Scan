@@ -164,6 +164,15 @@ function renderPairsReview(pairedByOrder) {
   updateStartBatchButton();
 }
 
+const objectUrlMap = new WeakMap();
+function getFileUrl(file) {
+  if (!file) return '';
+  if (!objectUrlMap.has(file)) {
+    objectUrlMap.set(file, URL.createObjectURL(file));
+  }
+  return objectUrlMap.get(file);
+}
+
 function renderPairsList() {
   const container = document.getElementById('pairs-list-container');
   if (!container) return;
@@ -172,13 +181,13 @@ function renderPairsList() {
     <div class="pair-card card" data-id="${pair.id}">
       <div class="pair-left">
         <div class="slot front-slot">
-          <img src="${URL.createObjectURL(pair.front.file)}" class="pair-thumb" alt="Front"/>
+          <img src="${getFileUrl(pair.front.file)}" class="pair-thumb" alt="Front"/>
           <span class="slot-tag">Front</span>
         </div>
         ${bulkSubmode === 'front_only' ? '' : `
         <div class="slot back-slot ${!pair.back ? 'empty-slot' : ''}" ondragover="event.preventDefault()" ondrop="window.dropOnBackSlot(event, '${pair.id}')">
           ${pair.back ? `
-            <img src="${URL.createObjectURL(pair.back.file)}" class="pair-thumb" alt="Back"/>
+            <img src="${getFileUrl(pair.back.file)}" class="pair-thumb" alt="Back"/>
             <span class="slot-tag">Back</span>
           ` : `<span class="empty-text">Drop back here</span>`}
         </div>

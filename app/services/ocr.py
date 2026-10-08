@@ -7,9 +7,20 @@ from typing import Any
 import cv2
 import httpx
 import numpy as np
-from azure.ai.documentintelligence import DocumentIntelligenceClient
-from azure.core.credentials import AzureKeyCredential
-from azure.core.exceptions import ResourceNotFoundError
+try:
+    from azure.ai.documentintelligence import DocumentIntelligenceClient
+    from azure.core.credentials import AzureKeyCredential
+    from azure.core.exceptions import ResourceNotFoundError
+except ImportError:
+    class DocumentIntelligenceClient:  # type: ignore
+        def __init__(self, *args, **kwargs):
+            raise ImportError("Azure Document Intelligence SDK is not installed. Please install azure-ai-documentintelligence.")
+
+    class AzureKeyCredential:  # type: ignore
+        def __init__(self, key: str):
+            self.key = key
+
+    ResourceNotFoundError = Exception  # type: ignore
 
 from app.core.config import get_settings
 from app.schemas.ocr import OcrLine, OcrResult
