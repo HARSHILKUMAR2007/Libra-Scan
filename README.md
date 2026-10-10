@@ -21,7 +21,7 @@ LibraScan is an automated book cataloging system that extracts metadata from boo
 ### 2. Setup Environment
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/book-ocr.git
+git clone https://github.com/darshil2032007/Libra-Scan
 cd book-ocr
 
 # Create and activate virtual environment
